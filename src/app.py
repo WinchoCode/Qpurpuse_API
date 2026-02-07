@@ -11,6 +11,12 @@ from flask_restful import Api
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
+from src.routes import (
+    register, login,
+    get_tasks, get_task,
+    create_task, update_task,
+    delete_task
+)
 
 load_dotenv()
 
@@ -103,7 +109,15 @@ def create_app(config_name='development'):
 
 def register_routes(app, api):
     """Register all API routes"""
-    print("this is still to be created")
+    app.add_url_rule('/api/register', 'register', register, methods=['POST'])
+    app.add_url_rule('/api/login', 'login', login, methods=['POST'])
+
+    app.add_url_rule('/api/tasks', 'get_tasks', get_tasks, methods=['GET'])
+    app.add_url_rule('/api/tasks', 'create_task', create_task, methods=['POST'])
+    app.add_url_rule('/api/tasks/<int:task_id>', 'get_task', get_task, methods=['GET'])
+    app.add_url_rule('/api/tasks/<int:task_id>', 'update_task', update_task, methods=['PUT'])
+    app.add_url_rule('/api/tasks/<int:task_id>', 'delete_task', delete_task, methods=['DELETE'])
+
     pass
         
 def initialize_extensions(app):
