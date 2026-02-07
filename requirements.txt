@@ -1,7 +1,11 @@
 aniso8601==10.0.1
 blinker==1.9.0
+certifi==2026.1.4
+charset-normalizer==3.4.4
 click==8.3.1
 colorama==0.4.6
+coverage==7.13.3
+Faker==40.4.0
 Flask==2.3.3
 Flask-Cors==4.0.0
 Flask-JWT-Extended==4.5.2
@@ -9,6 +13,7 @@ flask-marshmallow==0.15.0
 Flask-RESTful==0.3.10
 Flask-SQLAlchemy==3.1.1
 greenlet==3.3.1
+idna==3.11
 iniconfig==2.3.0
 itsdangerous==2.2.0
 Jinja2==3.1.6
@@ -18,10 +23,14 @@ packaging==26.0
 pluggy==1.6.0
 PyJWT==2.11.0
 pytest==8.2.2
+pytest-cov==7.0.0
 pytest-flask==1.2.0
 python-dotenv==1.0.0
 pytz==2025.2
+requests==2.32.5
 six==1.17.0
 SQLAlchemy==2.0.46
 typing_extensions==4.15.0
+tzdata==2025.3
+urllib3==2.6.3
 Werkzeug==3.1.5
