@@ -6,30 +6,30 @@ class User(db.Model):
     """User model for authentication."""
     __tablename__ = 'users'
 
-    user_id = db.Column(db.Integer, primary_key=True)
-    user_username = db.Column(db.String(80), unique=True, nullable=False, index=True)
-    user_password_hash = db.Column(db.String(256), nullable=False)
-    user_created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(256), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     tasks = db.relationship('Task', backref='author', lazy=True, cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<User {self.username}>'
     
-    def set_password(self, password):
+    def set_password(self, user_password):
         """Hash and set the user's password."""
-        self.user_password_hash = generate_password_hash(password)
+        self.password_hash = generate_password_hash(user_password)
 
-    def check_password(self, password):
+    def check_password(self, user_password):
         """Check if the password is correct."""
-        return check_password_hash(self.user_password_hash, password)
+        return check_password_hash(self.password_hash, user_password)
     
     def to_dictionary(self):
         """Convert user to a dictionary"""
         return {
-            'user_id': self.user_id,
-            'user_username': self.user_username,
-            'user_created_at': self.user_created_at.isoformat() if self.user_created_at else None,
+            'user_id': self.id,
+            'user_username': self.username,
+            'user_created_at': self.created_at.isoformat() if self.created_at else None,
             'task_counter': len(self.tasks) if self.tasks else 0
         }
     
