@@ -1,4 +1,11 @@
 import os
+import sys
+from pathlib import Path
+
+current_dir = Path(__file__).parent
+project_root = current_dir.parent
+sys.path.insert(0,str(project_root))
+
 from flask import Flask, jsonify
 from flask_restful import Api
 from flask_cors import CORS
@@ -11,12 +18,21 @@ def create_app(config_name='development'):
     """Create and configure the Flask application"""
     app = Flask(__name__)
 
-    if config_name == 'testing':
-        app.config.from_object('src.config.TestingConfig')
-    elif config_name == 'production':
-        app.config.from_object('src.config.ProductionConfig')
-    else:
-        app.config.from_object('src.config.DevelopmentConfig')
+    try:
+        from .config import DevelopmentConfig, TestingConfig, ProductionConfig
+        config_classes = {
+            'development': DevelopmentConfig,
+            'testing': TestingConfig,
+            'production': ProductionConfig
+        }
+        app.config.from_object(config_classes.get(config_name, DevelopmentConfig))
+    except ImportError:
+        if config_name == 'testing':
+            app.config.from_object('src.config.TestingConfig')
+        elif config_name == 'production':
+            app.config.from_object('src.config.ProductionConfig')
+        else:
+            app.config.from_object('src.config.DevelopmentConfig')
 
     CORS(app)
 
@@ -102,19 +118,16 @@ def initialize_extensions(app):
     return app
 
 if __name__ == '__main__':
-    app = create_app()
-
-    initialize_extensions(app)
-
-    host = os.environ.get('HOST', '0.0.0.0')
-    port = int(os.environ.get('PORT', 5000))
-    debug = app.config.get('DEBUG', False)
-
-    print(f"Starting Task Manager API")
-    print(f"Environment: {app.config.get('ENV', 'development')}")
-    print(f"Debug mode: {debug}")
-    print(f"Database: {app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')}")
-    print(f"Server: http://{host}:{port}")
-    print(f"Health check: http://{host}:{port}/health")
-
-    app.run(host=host, port=port, debug=debug)
+    print("Warning: Running app directly may cause import issues.")
+    print("Use 'python run.py' from the project root instead.")
+    
+    try:
+        app = create_app()
+        initialize_extensions(app)
+        host = os.environ.get('HOST', '0.0.0.0')
+        port = int(os.environ.get('PORT', 5000))
+        debug = app.config.get('DEBUG', False)
+        app.run(host=host, port=port, debug=debug)
+    except Exception as exept:
+        print(f"Error: {exept}")
+        print("\nRun the app using 'python run.py' from the project root folder.")
