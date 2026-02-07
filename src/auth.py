@@ -14,7 +14,7 @@ def authenticate_user(username, password):
 
 def create_user(username, password):
     """Create a new user"""
-    if User.query.filter_by(username=username):
+    if User.query.filter_by(username=username).first():
         return None, "Username already exists"
     
     user = User(username=username)
