@@ -15,8 +15,11 @@ from src.routes import (
     register, login,
     get_tasks, get_task,
     create_task, update_task,
-    delete_task
+    delete_task, register_routes
 )
+from src.database import db
+from src.models import User, Task
+from src.auth import authenticate_user, create_user, create_auth_token
 
 load_dotenv()
 
@@ -45,6 +48,8 @@ def create_app(config_name='development'):
     api = Api(app)
 
     jwt = JWTManager(app)
+
+    db.init_app(app)
 
     register_routes(app, api)
 
@@ -114,9 +119,9 @@ def register_routes(app, api):
 
     app.add_url_rule('/api/tasks', 'get_tasks', get_tasks, methods=['GET'])
     app.add_url_rule('/api/tasks', 'create_task', create_task, methods=['POST'])
-    app.add_url_rule('/api/tasks/<int:task_id>', 'get_task', get_task, methods=['GET'])
-    app.add_url_rule('/api/tasks/<int:task_id>', 'update_task', update_task, methods=['PUT'])
-    app.add_url_rule('/api/tasks/<int:task_id>', 'delete_task', delete_task, methods=['DELETE'])
+    app.add_url_rule('/api/tasks/<int:id>', 'get_task', get_task, methods=['GET'])
+    app.add_url_rule('/api/tasks/<int:id>', 'update_task', update_task, methods=['PUT'])
+    app.add_url_rule('/api/tasks/<int:id>', 'delete_task', delete_task, methods=['DELETE'])
 
     pass
         

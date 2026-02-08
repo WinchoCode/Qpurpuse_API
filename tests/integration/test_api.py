@@ -59,10 +59,10 @@ def test_register_missing_fields(client):
 
     assert response.status_code == 400
 
-def test_register_duplicate_username(client, test_user):
+def test_register_duplicate_username(client, test_user_with_password):
     """Test duplication of username"""
     response = client.post('/api/register', json={
-        'username': test_user.username,
+        'username': test_user_with_password.username,
         'password': 'newpassword'
     })
 
@@ -118,10 +118,10 @@ def test_protected_endpoint_without_token(client):
 def test_create_task_success(client, auth_headers):
     """Test creation of a task with aouthentication"""
     task_data = {
-        'task_title': 'Integration test task',
-        'task_description': 'Task from the integration test',
-        'task_due_date': (datetime.utcnow() + timedelta(days=7)).isoformat(),
-        'task_is_completed': False
+        'title': 'Integration test task',
+        'description': 'Task from the integration test',
+        'due_date': (datetime.utcnow() + timedelta(days=7)).isoformat(),
+        'is_completed': False
     }
 
     response = client.post('/api/tasks', json=task_data, headers=auth_headers)
@@ -131,9 +131,9 @@ def test_create_task_success(client, auth_headers):
 
     assert data['message'] == 'Task created successfully'
     assert 'task' in data
-    assert data['task']['task_title'] == task_data['task_title']
-    assert data['task']['task_description'] == task_data['task_description']
-    assert data['task']['task_is_completed'] == task_data['task_is_completed']
+    assert data['task']['title'] == task_data['title']
+    assert data['task']['description'] == task_data['description']
+    assert data['task']['is_completed'] == task_data['is_completed']
 
 def test_create_task_missing_title(client, auth_headers):
     """Test creating a task without title"""
@@ -147,8 +147,8 @@ def test_create_task_missing_title(client, auth_headers):
 def test_create_task_invalid_date(client, auth_headers):
     """Test creating task with invalid date format"""
     response = client.post('/api/tasks', json={
-        'task_title': 'Test task',
-        'task_due_date': 'not-a-valid-date'
+        'title': 'Test task',
+        'due_date': 'not-a-valid-date'
     }, headers=auth_headers)
 
     assert response.status_code == 400
@@ -181,11 +181,11 @@ def test_get_tasks_with_data(client, auth_headers, test_tasks):
     assert data['count'] == 3
 
     task = data ['tasks'][0]
-    assert 'task_id' in task
-    assert 'task_title' in task
-    assert 'task_description' in task
-    assert 'task_is_completed' in task
-    assert 'task_created_at' in task
+    assert 'id' in task
+    assert 'title' in task
+    assert 'description' in task
+    assert 'is_completed' in task
+    assert 'created_at' in task
 
 def test_get_completed_tasks(client, auth_headers, test_tasks):
     """Test retrieve the completed tasks"""
@@ -196,7 +196,7 @@ def test_get_completed_tasks(client, auth_headers, test_tasks):
 
     assert data['count'] == 2
     for task in data['tasks']:
-        assert task['task_is_completed'] is True
+        assert task['is_completed'] is True
 
     response = client.get('/api/tasks?completed=false', headers=auth_headers)
 
@@ -205,20 +205,20 @@ def test_get_completed_tasks(client, auth_headers, test_tasks):
 
     assert data['count'] == 1
     for task in data['tasks']:
-        assert task['task_is_completed'] is False
+        assert task['is_completed'] is False
 
 def test_get_single_task_success(client, auth_headers, test_tasks):
     """Test getting a single task"""
-    task_id = test_tasks[0].task_id
-
+    task_id = test_tasks[0].id
+    
     response = client.get(f'/api/tasks/{task_id}', headers=auth_headers)
-
+    
     assert response.status_code == 200
     data = response.get_json()
-
+    
     assert 'task' in data
-    assert data['task']['task_id'] == task_id
-    assert data['task']['task_title'] == test_tasks[0].task_title
+    assert data['task']['id'] == task_id
+    assert data['task']['title'] == test_tasks[0].title
 
 def get_single_task_not_found(client, auth_headers):
     """Test getting non-existent task"""
@@ -236,22 +236,22 @@ def test_get_other_users_task(client, auth_headers, db_session):
     db_session.add(other_user)
     db_session.commit()
 
-    other_task = Task(task_title="Another user's task", user_id=other_user.id)
+    other_task = Task(title="Another user's task", user_id=other_user.id)
     db_session.add(other_task)
     db_session.commit()
 
-    response = client.get(f'/api/tasks/{other_task.task_id}', headers=auth_headers)
+    response = client.get(f'/api/tasks/{other_task.id}', headers=auth_headers)
 
     assert response.status_code == 404
 
 def test_update_task_success(client, auth_headers, test_tasks):
     """Test task update"""
-    task_id = test_tasks[0].task_id
+    task_id = test_tasks[0].id
 
     update_data = {
-        'task_title': 'Updated task title',
-        'task_description': 'Updated task description',
-        'task_is_completed': True
+        'title': 'Updated task title',
+        'description': 'Updated task description',
+        'is_completed': True
     }
 
     response = client.put(f'/api/tasks/{task_id}', 
@@ -262,30 +262,30 @@ def test_update_task_success(client, auth_headers, test_tasks):
     data = response.get_json()
     
     assert data['message'] == 'Task updated successfully'
-    assert data['task']['task_title'] == update_data['task_title']
-    assert data['task']['task_description'] == update_data['task_description']
-    assert data['task']['task_is_completed'] == update_data['task_is_completed']
+    assert data['task']['title'] == update_data['title']
+    assert data['task']['description'] == update_data['description']
+    assert data['task']['is_completed'] == update_data['is_completed']
 
 def test_update_task_partial(client, auth_headers, test_tasks):
     """Test updating only some fields"""
-    task_id = test_tasks[0].task_id
-    original_title = test_tasks[0].task_title
+    task_id = test_tasks[0].id
+    original_title = test_tasks[0].title
     
     response = client.put(f'/api/tasks/{task_id}', 
-                         json={'task_description': 'Only description updated'},
+                         json={'description': 'Only description updated'},
                          headers=auth_headers)
     
     assert response.status_code == 200
     data = response.get_json()
     
-    assert data['task']['task_title'] == original_title
-    assert data['task']['task_description'] == 'Only description updated'
+    assert data['task']['title'] == original_title
+    assert data['task']['description'] == 'Only description updated'
 
 def test_delete_task_success(client, auth_headers, test_tasks, db_session):
     """Test deleting a task"""
     from src.models import Task
 
-    task_id = test_tasks[0].task_id
+    task_id = test_tasks[0].id
     
     task = Task.query.get(task_id)
     assert task is not None

@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 from src.app import create_app
 from src.database import db
 from src.models import User, Task
+from sqlalchemy.orm import sessionmaker, scoped_session
+from pathlib import Path
 from faker import Faker
 
 fake = Faker()
@@ -14,10 +16,12 @@ fake = Faker()
 def app():
     """Create a Flask app configured for testing"""
     db_fd, db_path = tempfile.mkstemp()
+    os.close(db_fd)
 
     app = create_app('testing')
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite://{db_path}'
+    db_uri = f"sqlite:///{Path(db_path).as_posix()}"
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
     app.config['TESTING'] = True
 
     with app.app_context():
@@ -28,9 +32,15 @@ def app():
     with app.app_context():
         db.session.remove()
         db.drop_all()
+        try:
+            db.engine.dispose()
+        except Exception:
+            pass
 
-    os.close(db_fd)
-    os.unlink(db_path)
+    try:
+        os.unlink(db_path)
+    except Exception:
+        pass
 
 @pytest.fixture
 def client(app):
@@ -49,7 +59,8 @@ def db_session(app):
         connection = db.engine.connect()
         transaction = connection.begin()
 
-        session = db.create_scoped_session(options={'bind': connection})
+        session_factory = sessionmaker(bind=connection)
+        session = scoped_session(session_factory)
         db.session = session
 
         yield session
@@ -59,7 +70,7 @@ def db_session(app):
         session.remove()
 
 @pytest.fixture
-def test_user(db_session):
+def test_user_with_password(db_session):
     """Create a test user"""
     user = User(
         username='testuser',
@@ -72,22 +83,22 @@ def test_user(db_session):
 @pytest.fixture
 def test_user_with_password(db_session):
     user = User(username='authuser')
-    user.set_password("testpassword123")
+    user.set_password("password123")
     db_session.add(user)
     db_session.commit()
     return user
 
 @pytest.fixture
-def test_tasks(db_session, test_user):
+def test_tasks(db_session, test_user_with_password):
     """Create a test task"""
     tasks = []
     for i in range(3):
         task = Task(
-            task_title=f"Test Task {i+1}",
-            task_description=f"Description for task {i+1}",
-            task_due_date=datetime.utcnow() + timedelta(days=i+1),
-            task_is_completed=(i % 2 == 0),
-            user_id=test_user.id
+            title=f"Test Task {i+1}",
+            description=f"Description for task {i+1}",
+            due_date=datetime.utcnow() + timedelta(days=i+1),
+            is_completed=(i % 2 == 0),
+            user_id=test_user_with_password.id
         )
         db_session.add(task)
         tasks.append(task)
@@ -100,7 +111,7 @@ def auth_headers(test_user_with_password, client):
     """Get authentication for a test"""
     response = client.post('/api/login', json={
         'username': test_user_with_password.username,
-        'password': 'testpassword123'
+        'password': 'password123'
     })
 
     token = response.json['access_token']

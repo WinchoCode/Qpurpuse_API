@@ -26,21 +26,21 @@ def test_create_user_duplicate(db_session):
 
 def test_authenticate_user_success(db_session):
     """Test user authentication, successful"""
-    user, _ = create_user("authentic_user", "authenticpassword")
+    user, _ = create_user("auth_test", "testpassword")
 
-    authenticated_user = authenticated_user("authentic_user", "authenticpassword")
+    authenticated_user = authenticate_user("auth_test", "testpassword")
 
     assert authenticated_user is not None
     assert authenticated_user.id == user.id
-    assert authenticated_user.username == "authentic_user"
+    assert authenticated_user.username == "auth_test"
 
 def test_authenticate_user_wrong_password(db_session):
-    """Test user authentication, with wrong password"""
-    user, _ = authenticate_user("authentic_user", "correctpassword")
-
-    authenticated_user = authenticate_user("authentic_user", "wrongpassword")
-
-    assert authenticated_user is None
+    """Test authentication with wrong password"""
+    user, _ = create_user("wrongpass", "correctpassword")
+    
+    authenticated_result = authenticate_user("wrongpass", "wrongpassword")
+    
+    assert authenticated_result is None
 
 def test_authenticate_user_nonexistent(db_session):
     """Test user authentication, user doesn´t exist"""
