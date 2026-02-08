@@ -50,7 +50,11 @@ def register():
 
         return jsonify({
             "message": "User registered successfully",
-            "user": user.to_dictionary(),
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "created_at": user.created_at.isoformat() if user.created_at else None
+            },
             "access_token": token
         }), 201
     
@@ -79,12 +83,16 @@ def login():
 
         return jsonify({
             "message": "Login successful",
-            "user": user.to_dictionary(),
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "created_at": user.created_at.isoformat() if user.created_at else None
+            },
             "access_token": token
         }), 200
     
     except Exception as exept:
-        return jsonify({"error": f"Login failed: {str(exept)}"}), 500
+        return jsonify({"error": f"Login failed: {str(exept)}"}), 401
     
 @jwt_required()
 def get_tasks():
@@ -108,14 +116,14 @@ def get_tasks():
         if search:
             search_term = f"%{search}%"
             query = query.filter(
-                (Task.task_title.ilike(search_term)) |
-                (Task.task_description.ilike(search_term))
+                (Task.title.ilike(search_term)) |
+                (Task.description.ilike(search_term))
             )
 
-        tasks = query.order_by(Task.task_created_at.desc()).all()
+        tasks = query.order_by(Task.created_at.desc()).all()
 
         return jsonify({
-            "task": [task.to_dictionary() for task in tasks],
+            "tasks": [task.to_dict() for task in tasks],
             "count": len(tasks)
         }), 200
         
@@ -147,10 +155,10 @@ def create_task():
                 return jsonify({"error": "Invalid date format. Use ISO format (e.g., 2024-12-31T23:59:59)"}), 400
             
             task = Task(
-                task_title=data['title'].strip(),
-                task_description=data.get('description', '').strip(),
-                task_due_date=due_date,
-                task_is_completed=data.get('is_completed', False),
+                title=data['title'].strip(),
+                description=data.get('description', '').strip(),
+                due_date=due_date,
+                is_completed=data.get('is_completed', False),
                 user_id=current_user.id
             )
 
@@ -159,7 +167,7 @@ def create_task():
 
             return jsonify({
                 "message": "Task created successfully",
-                "task": task.to_dictionary()
+                "task": task.to_dict()
             }), 201
         
     except Exception as exept:
@@ -167,31 +175,31 @@ def create_task():
         return jsonify({"error": f"Failed to create task: {str(exept)}"}), 500
     
 @jwt_required()
-def get_task(task_id):
+def get_task(id):
     """Get an specific task by ID"""
     try:
         current_user = get_current_user()
         if not current_user:
             return jsonify({"error": "User not found"}), 404
         
-        task = Task.query.filter_by(id=task_id, user_id=current_user.id).first()
+        task = Task.query.filter_by(id=id, user_id=current_user.id).first()
         if not task:
             return jsonify({"error": "Task not found"}), 404
         
-        return jsonify({"task": task.to_dictionary()}), 200
+        return jsonify({"task": task.to_dict()}), 200
     
     except Exception as exept:
         return jsonify({"error": f"Failed to get task: {str(exept)}"}), 500
     
 @jwt_required()
-def update_task(task_id):
+def update_task(id):
     """Update a specific task"""
     try:
         current_user = get_current_user()
         if not current_user:
             return jsonify({"error": "User not found"}), 404
         
-        task = Task.query.filter_by(id=task_id, user_id=current_user.id).first()
+        task = Task.query.filter_by(id=id, user_id=current_user.id).first()
         if not task:
             return jsonify({"error": "Task not found"}), 404
         
@@ -200,30 +208,30 @@ def update_task(task_id):
             return jsonify({"error": "No data provided"}), 400
         
         if 'title' in data:
-            task.task_title = data['title'].strip()
+            task.title = data['title'].strip()
 
         if 'description' in data:
-            task.task_description = data['description'].strip()
+            task.description = data['description'].strip()
 
         if 'due_date' in data:
             if data['due_date'] is None:
-                task.task_due_date = None
+                task.due_date = None
             else:
                 try:
-                    task.task_due_date = datetime.fromisoformat(data['due_date'].replace('Z', '+00:00'))
+                    task.due_date = datetime.fromisoformat(data['due_date'].replace('Z', '+00:00'))
                 except ValueError:
                     return jsonify({"error": "Invalid date format. Use ISO format"}), 400
                 
         if 'is_completed' in data:
-            task.task_is_completed = bool(data['is_completed'])
+            task.is_completed = bool(data['is_completed'])
 
-        task.task_updated_at = datetime.utcnow()
+        task.updated_at = datetime.utcnow()
 
         db.session.commit()
 
         return jsonify({
             "message": "Task updated successfully",
-            "task": task.to_dictionary()
+            "task": task.to_dict()
         }), 200
     
     except Exception as exept:
@@ -231,14 +239,14 @@ def update_task(task_id):
         return jsonify({"error": f"Failed to update task: {str(exept)}"}), 500
     
 @jwt_required()
-def delete_task(task_id):
+def delete_task(id):
     """Delete a specific task"""
     try:
         current_user = get_current_user()
         if not current_user:
             return jsonify({"error": "User not found"}), 404
         
-        task = Task.query.filter_by(id=task_id, user_id=current_user.id).first()
+        task = Task.query.filter_by(id=id, user_id=current_user.id).first()
         if not task:
             return jsonify({"error": "Task not found"}), 404
         
@@ -250,3 +258,16 @@ def delete_task(task_id):
     except Exception as exept:
         db.session.rollback()
         return jsonify({"error": f"Failed to delete task: {str(exept)}"}), 500
+
+def register_routes(app, api):
+    """
+    Register all API routes with the Flask app and API
+    """
+    app.add_url_rule('/api/register', 'register', register, methods=['POST'])
+    app.add_url_rule('/api/login', 'login', login, methods=['POST'])
+    
+    app.add_url_rule('/api/tasks', 'get_tasks', get_tasks, methods=['GET'])
+    app.add_url_rule('/api/tasks', 'create_task', create_task, methods=['POST'])
+    app.add_url_rule('/api/tasks/<int:id>', 'get_task', get_task, methods=['GET'])
+    app.add_url_rule('/api/tasks/<int:id>', 'update_task', update_task, methods=['PUT'])
+    app.add_url_rule('/api/tasks/<int:id>', 'delete_task', delete_task, methods=['DELETE'])
