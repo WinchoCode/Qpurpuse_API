@@ -63,7 +63,7 @@ def test_user(db_session):
     """Create a test user"""
     user = User(
         username='testuser',
-        password_hash='1234567890!"#¤%&/()=@£$€{[]}qwerQWERasdfASDFzxcvZXCV'
+        password_hash='$2b$1234567890!"#¤%&/()=@£$€{[]}qwerQWERasdfASDFzxcvZXCV'
     )
     db_session.add(user)
     db_session.commit()
